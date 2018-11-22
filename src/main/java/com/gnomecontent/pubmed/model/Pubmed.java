@@ -13,11 +13,40 @@ public class Pubmed {
 	private String journalTitle;
 	private String articleTitle;
 	private List<String> authers;
-	private String articleText;
+	private String abstarctText;
+	private String articleTextUrl;
+	private List<String> keywords;
 	private String language;
-	private String completedDate;
 	private String publishedDate;
 	private String publicationStatus;
+
+	public String getAbstarctText() {
+		return abstarctText;
+	}
+
+	public String getArticleTextUrl() {
+		return articleTextUrl;
+	}
+
+
+	public void setAbstarctText(String abstarctText) {
+		this.abstarctText = abstarctText;
+	}
+
+	public void setArticleTextUrl(String articleTextUrl) {
+		this.articleTextUrl = articleTextUrl;
+	}
+
+
+	
+
+	public List<String> getKeywords() {
+		return keywords;
+	}
+
+	public void setKeywords(List<String> keywords) {
+		this.keywords = keywords;
+	}
 
 	public String getPmid() {
 		return pmid;
@@ -35,21 +64,11 @@ public class Pubmed {
 		return authers;
 	}
 
-	public String getArticleText() {
-		return articleText;
-	}
-
-	public void setArticleText(String articleText) {
-		this.articleText = articleText;
-	}
-
 	public String getLanguage() {
 		return language;
 	}
 
-	public String getCompletedDate() {
-		return completedDate;
-	}
+	
 
 	public String getPublishedDate() {
 		return publishedDate;
@@ -77,10 +96,6 @@ public class Pubmed {
 
 	public void setLanguage(String language) {
 		this.language = language;
-	}
-
-	public void setCompletedDate(String completedDate) {
-		this.completedDate = completedDate;
 	}
 
 	public void setPublishedDate(String publishedDate) {
