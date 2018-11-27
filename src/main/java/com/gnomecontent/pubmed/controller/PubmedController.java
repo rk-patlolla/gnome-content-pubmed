@@ -5,6 +5,8 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,6 +52,30 @@ public class PubmedController {
 
 		return xmlData;
 	}
+	@GetMapping(value = "/searchByUmlsKeywords")
+	public String getArticlesByUmlsKeywords() throws IOException {
+
+		String xmlData = pubService.searchAndSaveUmlArticlesInMongo();
+
+		return xmlData;
+	}
+	
+	@GetMapping(value = "/umlsPhraseQuery")
+	public String umlsPhraseQueryArticles() throws IOException {
+
+		String xmlData = pubService.searchUmlsKeywordsByPhraseQuery();
+
+		return xmlData;
+	}
+	@GetMapping(value = "/excelPhraseQuery")
+	public String excelPhraseQueryArticles() throws IOException {
+
+		String xmlData = pubService.searchExcelKeywordsByPhraseQuery();
+
+		return xmlData;
+	}
+	
+	
 	
 	@GetMapping(value = "/extractText")
 	public String getText() throws IOException {
@@ -67,11 +93,14 @@ public class PubmedController {
 		return xmlData;
 	}
 	@GetMapping(value = "/test")
-	public Iterable<PubmedArticles>  test() throws IOException {
+	public Page<PubmedArticles>  test(Pageable pageable) throws IOException {
 
-		Iterable<PubmedArticles> findAll = pubRepository.search(queryStringQuery("java"));
+		 Page<PubmedArticles> getbyAll = pubRepository.getbyAll("heart", pageable);
+		 System.out.println("Total Elements....."+getbyAll.getTotalElements());
 
-		return findAll;
+			
+		 //findByNameLike()
+		return getbyAll;
 	}
 	
 	

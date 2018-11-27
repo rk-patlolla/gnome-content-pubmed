@@ -100,7 +100,7 @@ public class PubmedUtils {
 	      
 	      try {
 	          XMLInputFactory factory = XMLInputFactory.newInstance();
-	          XMLStreamReader streamReader = factory.createXMLStreamReader(new FileInputStream("D:/test.xml"));
+	          XMLStreamReader streamReader = factory.createXMLStreamReader(new FileInputStream("D:/pubmed/pubmed18n0928.xml"));
 	          while (streamReader.hasNext()) {
 	                int eventType = streamReader.next();
 	                switch (eventType) {

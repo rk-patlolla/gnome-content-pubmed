@@ -21,10 +21,15 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -38,6 +43,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.gnomecontent.pubmed.documents.PubmedArticles;
+import com.gnomecontent.pubmed.documents.PubmedExcelPhraseQuery;
+import com.gnomecontent.pubmed.documents.PubmedUmlsKeywords;
+import com.gnomecontent.pubmed.documents.PubmedUmlsPhraseQuery;
 import com.gnomecontent.pubmed.documents.Test;
 import com.gnomecontent.pubmed.model.Pubmed;
 import com.gnomecontent.pubmed.repository.PubmedArticlesRepository;
@@ -380,7 +388,7 @@ public class PubmedServiceImpl implements PubmedService {
 	@Override
 	public String searchAndSaveArticlesInMongo() {
 	
-		String fileName = "D:/search-keywords.txt";
+		String fileName = "D:/excel-keywords.txt";
 		File file = new File(fileName);
 		FileReader fr;
 		Pubmed pub=null;
@@ -417,15 +425,15 @@ public class PubmedServiceImpl implements PubmedService {
 						}
 						else {
 						
-							System.out.println(articles.getPmid());
+							//System.out.println(articles.getPmid());
 							Query query=new Query().addCriteria(Criteria.where("pmid").is(articles.getPmid()));
 							Pubmed pubArticleObj = mongoTemplate.findOne(query, Pubmed.class);	
-							List<String> exitKeyword=pubArticleObj.getKeywords();
+							List<String> existKeyword=pubArticleObj.getKeywords();
 							
-							if(!exitKeyword.contains(keyword)) {
-								exitKeyword.add(keyword);
-								logger.info("Keywords..."+exitKeyword);
-								pubArticleObj.setKeywords(exitKeyword);
+							if(!existKeyword.contains(keyword)) {
+								existKeyword.add(keyword);
+								logger.info("Keywords..."+existKeyword);
+								pubArticleObj.setKeywords(existKeyword);
 								mongoTemplate.save(pubArticleObj);
 							}
 							else {
@@ -445,7 +453,7 @@ public class PubmedServiceImpl implements PubmedService {
 			e.printStackTrace();
 		}
 	
-		return "Articles save into MongoDb Successfully";
+		return "Excel Sheet Articles save into MongoDb Successfully";
 	}
 
 	@Override
@@ -475,6 +483,267 @@ public class PubmedServiceImpl implements PubmedService {
 		
 		
 		return "SAX Parser Success";
+	}
+
+	@Override
+	public String searchAndSaveUmlArticlesInMongo() {
+		
+		String fileName = "D:/umls-keywords.txt";
+		File file = new File(fileName);
+		FileReader fr;
+		PubmedUmlsKeywords pub=null;
+		try {
+			fr = new FileReader(file);
+			BufferedReader br = new BufferedReader(fr);
+			String keyword;
+			try {
+				while((keyword = br.readLine()) != null){
+				    //process the line
+				    System.out.println(keyword);
+				    
+				    //Iterable<PubmedArticles> aList = pubRepository.search(queryStringQuery(keyword));
+				    
+				    BoolQueryBuilder bquery = QueryBuilders.boolQuery()
+			                .should(
+			                        QueryBuilders.queryStringQuery(keyword)
+			                                .lenient(true)
+			                                .field("articleTitle")
+			                                .field("abstractText")
+			                                .field("articleText")
+			                );
+			
+				    //SearchQuery searchQuery = new NativeSearchQueryBuilder().withQuery(bquery).build();
+				    Iterable<PubmedArticles> searchList = pubRepository.search(bquery);
+				    
+				    
+				   /* List<PubmedArticles> pubList=new ArrayList<>();
+				    search.forEach(list->pubList.add(list));
+				    System.out.println("Size...."+pubList.size());*/
+					List<String> keywordsList=null;
+					for(PubmedArticles articles:searchList) {	
+						PubmedUmlsKeywords findById = mongoTemplate.findById(articles.getPmid(), PubmedUmlsKeywords.class);
+						if(findById==null) {
+							pub=new PubmedUmlsKeywords();
+							keywordsList=new ArrayList<>();
+							keywordsList.add(keyword);
+							pub.setPmid(articles.getPmid());
+							pub.setJournalTitle(articles.getJournalTitle());
+							pub.setArticleTitle(articles.getArticleTitle());
+							pub.setKeywords(keywordsList);
+							pub.setAuthers(articles.getAuthers());
+							pub.setAbstarctText(articles.getAbstractText());
+							pub.setLanguage(articles.getLanguage());
+							pub.setPublishedDate(articles.getPublishedDate());
+							pub.setPublicationStatus(articles.getPublicationStatus());
+							pub.setArticleTextUrl(articles.getArticleTextUrl());
+							
+							mongoTemplate.save(pub);
+							System.out.println("Article Saved...");
+							keywordsList.clear();
+						}
+						else {
+						
+							System.out.println(articles.getPmid());
+							Query query1=new Query().addCriteria(Criteria.where("pmid").is(articles.getPmid()));
+							PubmedUmlsKeywords pubArticleObj = mongoTemplate.findOne(query1, PubmedUmlsKeywords.class);	
+							List<String> existKeyword=pubArticleObj.getKeywords();
+							
+							if(!existKeyword.contains(keyword)) {
+								existKeyword.add(keyword);
+								//logger.info("Keywords..."+existKeyword);
+								pubArticleObj.setKeywords(existKeyword);
+								mongoTemplate.save(pubArticleObj);
+							}
+							else {
+								logger.info(keyword+" already exists w.r.to PMID "+articles.getPmid());
+							}	
+								
+						}
+					}
+				    
+				}
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+		} catch (FileNotFoundException e) {
+			
+			e.printStackTrace();
+		}
+	
+		return "UMLS Articles save into MongoDb Successfully";
+	}
+
+	@Override
+	public String searchUmlsKeywordsByPhraseQuery() {
+
+		String fileName = "D:/umls-keywords.txt";
+		File file = new File(fileName);
+		FileReader fr;
+		PubmedUmlsPhraseQuery pub = null;
+		try {
+			fr = new FileReader(file);
+			BufferedReader br = new BufferedReader(fr);
+			String keyword;
+			try {
+				while ((keyword = br.readLine()) != null) {
+					// process the line
+					System.out.println(keyword);
+
+					// Iterable<PubmedArticles> aList =
+					// pubRepository.search(queryStringQuery(keyword));
+					BoolQueryBuilder query = QueryBuilders.boolQuery();
+					query.should(QueryBuilders.matchPhraseQuery("articleTitle", keyword));
+					query.should(QueryBuilders.matchPhraseQuery("abstractText", keyword));
+					query.should(QueryBuilders.matchPhraseQuery("articleText", keyword));
+
+					// SearchQuery searchQuery = new
+					// NativeSearchQueryBuilder().withQuery(bquery).build();
+					Iterable<PubmedArticles> searchList = pubRepository.search(query);
+					if(searchList!=null) {
+					List<String> keywordsList = null;
+					for (PubmedArticles articles : searchList) {
+						PubmedUmlsPhraseQuery findById = mongoTemplate.findById(articles.getPmid(),
+								PubmedUmlsPhraseQuery.class);
+						if (findById == null) {
+							pub = new PubmedUmlsPhraseQuery();
+							keywordsList = new ArrayList<>();
+							keywordsList.add(keyword);
+							pub.setPmid(articles.getPmid());
+							pub.setJournalTitle(articles.getJournalTitle());
+							pub.setArticleTitle(articles.getArticleTitle());
+							pub.setKeywords(keywordsList);
+							pub.setAuthers(articles.getAuthers());
+							pub.setAbstarctText(articles.getAbstractText());
+							pub.setLanguage(articles.getLanguage());
+							pub.setPublishedDate(articles.getPublishedDate());
+							pub.setPublicationStatus(articles.getPublicationStatus());
+							pub.setArticleTextUrl(articles.getArticleTextUrl());
+
+							mongoTemplate.save(pub);
+							System.out.println("Article Saved...");
+							keywordsList.clear();
+						} else {
+
+							System.out.println(articles.getPmid());
+							Query query1 = new Query().addCriteria(Criteria.where("pmid").is(articles.getPmid()));
+							PubmedUmlsPhraseQuery pubArticleObj = mongoTemplate.findOne(query1,
+									PubmedUmlsPhraseQuery.class);
+							List<String> existKeyword = pubArticleObj.getKeywords();
+
+							if (!existKeyword.contains(keyword)) {
+								existKeyword.add(keyword);
+								// logger.info("Keywords..."+existKeyword);
+								pubArticleObj.setKeywords(existKeyword);
+								mongoTemplate.save(pubArticleObj);
+							} else {
+								logger.info(keyword + " already exists w.r.to PMID " + articles.getPmid());
+							}
+
+						}
+					}
+
+				}
+					else {
+						System.out.println("No data found for keyword..."+keyword);
+					}
+				}
+			} catch (IOException e) {
+
+				e.printStackTrace();
+			}
+		} catch (FileNotFoundException e) {
+
+			e.printStackTrace();
+		}
+		return "UMLS Phrase Query saved into MongoDb Successfully";
+	}
+
+	@Override
+	public String searchExcelKeywordsByPhraseQuery() {
+
+		String fileName = "D:/excel-keywords.txt";
+		File file = new File(fileName);
+		FileReader fr;
+		PubmedExcelPhraseQuery pub = null;
+		try {
+			fr = new FileReader(file);
+			BufferedReader br = new BufferedReader(fr);
+			String keyword;
+			try {
+				while ((keyword = br.readLine()) != null) {
+					// process the line
+					System.out.println(keyword);
+
+					// Iterable<PubmedArticles> aList =
+					// pubRepository.search(queryStringQuery(keyword));
+
+					BoolQueryBuilder query = QueryBuilders.boolQuery();
+					query.should(QueryBuilders.matchPhraseQuery("articleTitle", keyword));
+					query.should(QueryBuilders.matchPhraseQuery("abstractText", keyword));
+					query.should(QueryBuilders.matchPhraseQuery("articleText", keyword));
+
+					// SearchQuery searchQuery = new
+					// NativeSearchQueryBuilder().withQuery(bquery).build();
+					Iterable<PubmedArticles> searchList = pubRepository.search(query);
+					if(searchList!=null) {
+					List<String> keywordsList = null;
+					for (PubmedArticles articles : searchList) {
+						PubmedExcelPhraseQuery findById = mongoTemplate.findById(articles.getPmid(),
+								PubmedExcelPhraseQuery.class);
+						if (findById == null) {
+							pub = new PubmedExcelPhraseQuery();
+							keywordsList = new ArrayList<>();
+							keywordsList.add(keyword);
+							pub.setPmid(articles.getPmid());
+							pub.setJournalTitle(articles.getJournalTitle());
+							pub.setArticleTitle(articles.getArticleTitle());
+							pub.setKeywords(keywordsList);
+							pub.setAuthers(articles.getAuthers());
+							pub.setAbstarctText(articles.getAbstractText());
+							pub.setLanguage(articles.getLanguage());
+							pub.setPublishedDate(articles.getPublishedDate());
+							pub.setPublicationStatus(articles.getPublicationStatus());
+							pub.setArticleTextUrl(articles.getArticleTextUrl());
+
+							mongoTemplate.save(pub);
+							System.out.println("Article Saved...");
+							keywordsList.clear();
+						} else {
+
+							System.out.println(articles.getPmid());
+							Query query1 = new Query().addCriteria(Criteria.where("pmid").is(articles.getPmid()));
+							PubmedExcelPhraseQuery pubArticleObj = mongoTemplate.findOne(query1,
+									PubmedExcelPhraseQuery.class);
+							List<String> existKeyword = pubArticleObj.getKeywords();
+
+							if (!existKeyword.contains(keyword)) {
+								existKeyword.add(keyword);
+								// logger.info("Keywords..."+existKeyword);
+								pubArticleObj.setKeywords(existKeyword);
+								mongoTemplate.save(pubArticleObj);
+							} else {
+								logger.info(keyword + " already exists w.r.to PMID " + articles.getPmid());
+							}
+
+						}
+					}
+
+				}
+					else {
+						System.out.println("No data found for keyword..."+keyword);
+					}
+				}
+			} catch (IOException e) {
+
+				e.printStackTrace();
+			}
+		} catch (FileNotFoundException e) {
+
+			e.printStackTrace();
+		}
+
+		return "Excel Phrase Query Articles saved into MongoDb Successfully";
 	}
 
 }
