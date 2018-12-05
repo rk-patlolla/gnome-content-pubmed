@@ -18,6 +18,24 @@ public class PubmedUmlsKeywords {
 	private String language;
 	private String publishedDate;
 	private String publicationStatus;
+	private String pmcId;
+	private List<String> citationsList;
+
+	public String getPmcId() {
+		return pmcId;
+	}
+
+	public List<String> getCitationsList() {
+		return citationsList;
+	}
+
+	public void setPmcId(String pmcId) {
+		this.pmcId = pmcId;
+	}
+
+	public void setCitationsList(List<String> citationsList) {
+		this.citationsList = citationsList;
+	}
 
 	public String getPmid() {
 		return pmid;

@@ -19,6 +19,8 @@ public class PubmedArticles {
 	private String language;
 	private String publishedDate;
 	private String publicationStatus;
+	private String pmcId;
+	private List<String> citationList;
 
 	public String getPmid() {
 		return pmid;
@@ -98,6 +100,22 @@ public class PubmedArticles {
 
 	public void setPublicationStatus(String publicationStatus) {
 		this.publicationStatus = publicationStatus;
+	}
+
+	public String getPmcId() {
+		return pmcId;
+	}
+
+	public List<String> getCitationList() {
+		return citationList;
+	}
+
+	public void setPmcId(String pmcId) {
+		this.pmcId = pmcId;
+	}
+
+	public void setCitationList(List<String> citationList) {
+		this.citationList = citationList;
 	}
 
 }
